@@ -1,0 +1,48 @@
+#!/usr/bin/python
+
+import argparse
+import json
+import subprocess
+import os
+
+def run_tmux(cmd, ewal=False, enter=True):
+    if ewal:
+        key = ""
+        if enter:
+            key = " C-m"
+        subprocess.call("tmux send-keys '%s'%s" % (cmd, key), shell=True)
+    else:
+        subprocess.call("tmux %s" % cmd, shell=True)
+
+def exec_branch (branch, curr_op):
+    if (branch[0] == "v" or branch[0] == "h"):
+        for i in range(len (branch) - 2):
+            if (branch[0] == "h"):
+                run_tmux("split-window -h")
+            elif (branch[0] == "v"):
+                run_tmux("split-window")
+        for i in range(len (branch) - 2):
+            run_tmux("select-pane -t:.-")
+
+        for index,s in enumerate(branch[1:]):
+            if index != 0:
+                run_tmux("select-pane -t:.+")
+            if isinstance (s, basestring):
+                run_tmux(s, True)
+            else:
+                exec_branch (s, branch[0])
+
+try:
+    parser = argparse.ArgumentParser(description="Ender - Make your dev env setup fast!")
+    parser.add_argument("--config", dest="config", default=".ender",
+                        help="Ender config file")
+    args = parser.parse_args()
+    enderfile_path = os.getcwd() + "/" + args.config
+    with open(enderfile_path, "r") as content_file:
+        content = content_file.read()
+        exec_branch(json.loads(content), "h")
+except IOError:
+    print "Add .ender file to this project"
+
+
+print
